@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b6b68">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ham calculator">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Ham calculator">
+<meta name="description" content="Calculate estimated date of delivery, gestational age and pregnancy month from the last menstrual period.">
+<title>Ham calculator</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--teal:#0b6b68;--teal2:#0f8580;--bg:#f3f8f7;--card:#fff;--text:#173331;--muted:#6d807e;--line:#dce9e7;--soft:#e9f5f3;--shadow:0 10px 30px rgba(14,72,68,.10)}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.app{max-width:620px;margin:auto;min-height:100vh;padding:18px 16px 30px}
+.header{text-align:center;padding:12px 0 18px}
+.logo{width:58px;height:58px;border-radius:18px;background:linear-gradient(145deg,var(--teal2),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:800;margin:0 auto 10px;box-shadow:0 8px 20px rgba(11,107,104,.22)}
+h1{font-size:25px;margin:0;font-weight:800;letter-spacing:-.5px}
+.subtitle{margin:5px 0 0;color:var(--muted);font-size:14px}
+.card{background:var(--card);border:1px solid rgba(13,93,89,.08);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:15px}
+label{display:block;font-size:14px;font-weight:700;margin-bottom:8px}
+input{width:100%;height:52px;border:1px solid var(--line);border-radius:14px;background:#fbfdfd;color:var(--text);font-size:17px;padding:0 14px;outline:none;transition:.15s}
+input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(15,133,128,.10)}
+.field{margin-bottom:17px}
+.help{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{border:0;width:100%;height:53px;border-radius:15px;font-size:16px;font-weight:800;cursor:pointer;touch-action:manipulation}
+.primary{background:linear-gradient(135deg,var(--teal2),var(--teal));color:#fff;box-shadow:0 7px 16px rgba(11,107,104,.20)}
+.secondary{background:var(--soft);color:var(--teal)}
+button:active{transform:scale(.985)}
+.results{display:none}
+.results.show{display:block}
+.result-main{background:linear-gradient(145deg,#0b6b68,#0e807b);color:#fff;border-radius:21px;padding:20px;margin-bottom:12px}
+.result-label{font-size:13px;opacity:.82;font-weight:700}
+.edd{font-size:30px;font-weight:850;margin-top:5px;letter-spacing:-.6px}
+.today{font-size:12px;opacity:.78;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.result-box{border:1px solid var(--line);border-radius:17px;padding:16px;background:#fff}
+.result-box .k{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.result-box .v{font-size:21px;font-weight:850}
+.result-box .small{font-size:13px;color:var(--muted);margin-top:3px}
+.note{background:#fff9e9;border:1px solid #f2e2ad;border-radius:15px;padding:13px;font-size:12px;line-height:1.5;color:#665625;margin-top:13px}
+.error{display:none;color:#a52e2e;background:#fff0f0;border:1px solid #f2caca;padding:12px;border-radius:13px;font-size:13px;margin-bottom:13px}
+.footer{text-align:center;color:var(--muted);font-size:11px;line-height:1.5;padding:4px 12px}
+@media(max-width:390px){.app{padding-left:12px;padding-right:12px}.card{padding:16px}.edd{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="logo">H</div>
+    <h1>Ham calculator</h1>
+    <p class="subtitle">Pregnancy dating calculator</p>
+  </header>
+
+  <section class="card">
+    <div class="field">
+      <label for="lmp">Last menstrual period (LMP)</label>
+      <input id="lmp" type="date" autocomplete="off">
+      <div class="help">Enter the first day of the last menstrual period.</div>
+    </div>
+
+    <div class="field">
+      <label for="cycle">Cycle length <span style="font-weight:500;color:var(--muted)">(optional)</span></label>
+      <input id="cycle" type="number" inputmode="numeric" min="20" max="45" placeholder="28">
+      <div class="help">Leave blank for a standard 28-day cycle. If entered, EDD is adjusted for the difference from 28 days.</div>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div class="row">
+      <button class="primary" id="calculate">Calculate</button>
+      <button class="secondary" id="clear">Clear</button>
+    </div>
+  </section>
+
+  <section id="results" class="card results">
+    <div class="result-main">
+      <div class="result-label">Estimated date of delivery</div>
+      <div class="edd" id="edd">—</div>
+      <div class="today" id="todayText"></div>
+    </div>
+
+    <div class="grid">
+      <div class="result-box">
+        <div class="k">Gestational age</div>
+        <div class="v" id="ga">—</div>
+        <div class="small">weeks + days</div>
+      </div>
+      <div class="result-box">
+        <div class="k">Pregnancy month</div>
+        <div class="v" id="month">—</div>
+        <div class="small" id="monthDetail">—</div>
+      </div>
+      <div class="result-box">
+        <div class="k">Days remaining</div>
+        <div class="v" id="remaining">—</div>
+        <div class="small">until estimated due date</div>
+      </div>
+      <div class="result-box">
+        <div class="k">Trimester</div>
+        <div class="v" id="trimester">—</div>
+        <div class="small">based on gestational age</div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Important:</strong> This is an estimated calculation based on the LMP and cycle length. It does not replace clinical assessment or ultrasound dating. If the LMP is uncertain or cycles are irregular, clinical/ultrasound assessment may be more appropriate.
+    </div>
+  </section>
+
+  <div class="footer">Ham calculator • For estimation only</div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const lmpEl = document.getElementById("lmp");
+  const cycleEl = document.getElementById("cycle");
+  const results = document.getElementById("results");
+  const errorEl = document.getElementById("error");
+
+  // Use local calendar dates rather than UTC to avoid timezone-related one-day errors.
+  function localDate(y,m,d){
+    return new Date(y,m,d,12,0,0,0);
+  }
+  function today(){
+    const n = new Date();
+    return localDate(n.getFullYear(),n.getMonth(),n.getDate());
+  }
+  function parseDateInput(value){
+    if(!value) return null;
+    const p=value.split("-").map(Number);
+    if(p.length!==3 || p.some(Number.isNaN)) return null;
+    const d=localDate(p[0],p[1]-1,p[2]);
+    if(d.getFullYear()!==p[0] || d.getMonth()!==p[1]-1 || d.getDate()!==p[2]) return null;
+    return d;
+  }
+  function addDays(date, days){
+    const d=new Date(date.getTime());
+    d.setDate(d.getDate()+days);
+    return d;
+  }
+  function diffDays(a,b){
+    return Math.round((b-a)/86400000);
+  }
+  function formatDate(d){
+    return d.toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"});
+  }
+  function formatShort(d){
+    return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+  }
+
+  // Common clinical convention:
+  // 1st month = weeks 0-4, 2nd = 5-8, 3rd = 9-13,
+  // 4th = 14-17, 5th = 18-22, 6th = 23-27,
+  // 7th = 28-31, 8th = 32-35, 9th = 36-40.
+  function pregnancyMonth(weeks, days){
+    const totalDays=weeks*7+days;
+    if(totalDays < 35) return [1,"Weeks 0–4"];
+    if(totalDays < 63) return [2,"Weeks 5–8"];
+    if(totalDays < 98) return [3,"Weeks 9–13"];
+    if(totalDays < 126) return [4,"Weeks 14–17"];
+    if(totalDays < 161) return [5,"Weeks 18–22"];
+    if(totalDays < 196) return [6,"Weeks 23–27"];
+    if(totalDays < 224) return [7,"Weeks 28–31"];
+    if(totalDays < 252) return [8,"Weeks 32–35"];
+    return [9,"Weeks 36–40+"];
+  }
+
+  function showError(msg){
+    errorEl.textContent=msg;
+    errorEl.style.display="block";
+    results.classList.remove("show");
+  }
+  function hideError(){ errorEl.style.display="none"; }
+
+  function calculate(){
+    hideError();
+    const lmp=parseDateInput(lmpEl.value);
+    if(!lmp){ showError("Please enter a valid last menstrual period date."); return; }
+
+    const now=today();
+    if(lmp>now){ showError("The LMP cannot be in the future."); return; }
+
+    let cycle=28;
+    if(cycleEl.value.trim()!==""){
+      cycle=Number(cycleEl.value);
+      if(!Number.isFinite(cycle) || cycle<20 || cycle>45){
+        showError("Cycle length should be between 20 and 45 days.");
+        return;
+      }
+    }
+
+    // Adjusted Naegele rule: LMP + 280 days + (cycle length - 28).
+    const edd=addDays(lmp,280+(cycle-28));
+    const totalDays=Math.max(0,diffDays(lmp,now));
+    const weeks=Math.floor(totalDays/7);
+    const days=totalDays%7;
+
+    // If beyond the estimated due date, show 40+ weeks rather than a negative remainder.
+    const rawRemaining=diffDays(now,edd);
+    const remaining=Math.max(0,rawRemaining);
+
+    let trimester;
+    if(totalDays<14*7) trimester="1st";
+    else if(totalDays<28*7) trimester="2nd";
+    else trimester="3rd";
+
+    const pm=pregnancyMonth(weeks,days);
+
+    document.getElementById("edd").textContent=formatDate(edd);
+    document.getElementById("todayText").textContent="Calculated on "+formatShort(now);
+    document.getElementById("ga").textContent=weeks+"w "+days+"d";
+    document.getElementById("month").textContent=pm[0]+(pm[0]===1?"st":pm[0]===2?"nd":pm[0]===3?"rd":"th")+" month";
+    document.getElementById("monthDetail").textContent=pm[1];
+    document.getElementById("remaining").textContent=rawRemaining>0?remaining+" days":"0 days";
+    document.getElementById("trimester").textContent=trimester+" trimester";
+    results.classList.add("show");
+
+    // Save only non-sensitive calculator inputs locally for convenience.
+    try{
+      localStorage.setItem("hamcalc_lmp",lmpEl.value);
+      localStorage.setItem("hamcalc_cycle",cycleEl.value);
+    }catch(e){}
+  }
+
+  document.getElementById("calculate").addEventListener("click",calculate);
+  document.getElementById("clear").addEventListener("click",function(){
+    lmpEl.value="";
+    cycleEl.value="";
+    results.classList.remove("show");
+    hideError();
+    try{localStorage.removeItem("hamcalc_lmp");localStorage.removeItem("hamcalc_cycle");}catch(e){}
+  });
+
+  // Enter key support.
+  [lmpEl,cycleEl].forEach(el=>el.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault();calculate();}
+  }));
+
+  // Restore previous inputs if available.
+  try{
+    const savedLmp=localStorage.getItem("hamcalc_lmp");
+    const savedCycle=localStorage.getItem("hamcalc_cycle");
+    if(savedLmp) lmpEl.value=savedLmp;
+    if(savedCycle!==null) cycleEl.value=savedCycle;
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
